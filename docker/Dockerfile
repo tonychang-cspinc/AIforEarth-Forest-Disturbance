@@ -72,4 +72,8 @@ RUN Rscript -e "library('devtools')" \
 
 RUN Rscript -e "IRkernel::installspec(user = FALSE)"
 
+#add blobfuse dependencies
+RUN wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb
+RUN dpkg -i packages-microsoft-prod.deb
+RUN apt-get update && apt-get install -y blobfuse
 

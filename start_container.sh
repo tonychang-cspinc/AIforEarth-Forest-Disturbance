@@ -1,13 +1,12 @@
 #!/bin/bash
 IMAGENAME=cspinc/fia:sample-building
-DATADRIVE=/E
-docker run -it --rm \
+DATADRIVE=/home/tony/datablob
+SECRETS=/home/tony/azure_secrets.env
+#-v $DATADRIVE:/datadrive \
+docker run -it --rm --privileged \
     -p 8888:8888 \
     -v $('pwd'):/content \
-    -v $DATADRIVE:/datadrive \
-    -v $(pwd)/authentication/credentials:/root/.config/earthengine/credentials \
-    -v $(pwd)/authentication/.boto:/root/.boto \
     -w /content \
+    --env-file $SECRETS \
     $IMAGENAME \
     /bin/bash
-#	 /bin/bash -c "bash authentications.sh;/bin/bash" \
