@@ -1,6 +1,6 @@
-# Earth Engine Secure Link
+# CSP x AI For Earth - Deep Forest Disturbance Analysis
 
-Methodology to send spatial coordinates to Google Earth Engine and retrieve imagery data. 
+Methodology to send spatial coordinates to Azure Open Datasets and retrieve imagery data. 
 
 ## Getting Started
 
@@ -9,12 +9,7 @@ Methodology to send spatial coordinates to Google Earth Engine and retrieve imag
 Following dependencies are
 
 - Python >= 3.6
-#- google-api-python-client = 1.6.4
-#- oauth2client = 2.2.0
-#- pyCrypto = 2.0.3
-#- pyOpenSSL = 17.3.0
-#- earthengine-api = 0.1.119
-#- Pillow = 3.4.1
+- Pillow = 3.4.1
 - pandas = 1.1.0
 - numpy = 1.19.1
 - jupyterlab = 2.2.4
@@ -34,7 +29,6 @@ TBD
 ## Author
 
 * **Tony Chang** - *Current development, implementation, and concept*
-* **Brandon Rasmussen** - *Initial work and concept*
 
 ## License
 
