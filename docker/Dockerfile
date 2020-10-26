@@ -11,13 +11,16 @@ RUN apt-get update && \
     vim \
     git \
     gcc \
+    jags \
     python3-dev \
     python3-pip \
     python-setuptools \
     tzdata \
     software-properties-common \
     libffi-dev \ 
+    libgeos-dev \
     libssl-dev \
+    libcurl4-openssl-dev \
     libspatialindex-dev \
     fonts-dejavu \
     gfortran \
@@ -40,6 +43,8 @@ RUN pip3 install \
     seaborn==0.10.1 \
     jupyterlab==2.2.4 \
     progressbar==2.5 \
+    progressbar2==3.53.1 \
+    h5netcdf==0.8.1 \
     geopy==2.0.0 \
     zarr==2.4.0 \
     earthengine-api==0.1.231 \
@@ -48,7 +53,10 @@ RUN pip3 install \
     gsutil==4.53 \
     tensorflow==2.3.0 \
     oauth2client==4.1.3 \ 
-    google-auth-oauthlib==0.4.1
+    google-auth-oauthlib==0.4.1 \
+    netCDF4==1.5.4 \
+    utm==0.6.0 \
+    wget==3.2
 
 #add vim bindings
 RUN mkdir -p $(jupyter --data-dir)/nbextensions &&\

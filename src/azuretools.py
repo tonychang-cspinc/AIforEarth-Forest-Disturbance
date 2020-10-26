@@ -14,6 +14,7 @@ import rasterio
 import rtree
 import shapely
 import pickle
+import math
 
 # pip install progressbar2, not progressbar
 import progressbar
@@ -29,6 +30,19 @@ blob_root = 'https://naipblobs.blob.core.windows.net/naip'
 
 index_files = ["tile_index.dat", "tile_index.idx", "tiles.p"]
 index_blob_root = 'https://naipblobs.blob.core.windows.net/naip-index/rtree/'
+# Storage locations are documented at http://aka.ms/ai4edata-nasadem
+nasadem_account_name = 'nasadem'
+nasadem_container_name = 'nasadem-nc'
+nasadem_account_url = 'https://' + nasadem_account_name + '.blob.core.windows.net'
+nasadem_blob_root = nasadem_account_url + '/' + nasadem_container_name + '/v001/'
+
+# A full list of files is available at:
+#
+# https://nasadem.blob.core.windows.net/nasadem-nc/v001/index/file_list.txt
+nasadem_file_index_url = nasadem_blob_root + 'index/nasadem_file_list.txt'
+nasadem_content_extension = '.nc'
+nasadem_file_prefix = 'NASADEM_NC_'
+
 temp_dir = os.path.join(tempfile.gettempdir(),'naip')
 os.makedirs(temp_dir,exist_ok=True)
 
@@ -110,7 +124,8 @@ class NAIPTileIndex:
             return intersected_files
         
             
-def download_url(url, destination_filename=None, progress_updater=None, force_download=False):
+def download_url(url, destination_filename=None, progress_updater=None,\
+        force_download=False, quiet=True):
     """
     Download a URL to a temporary file
     """
@@ -122,7 +137,8 @@ def download_url(url, destination_filename=None, progress_updater=None, force_do
         destination_filename = \
             os.path.join(temp_dir,url_as_filename)
     if (not force_download) and (os.path.isfile(destination_filename)):
-        print('Bypassing download of already-downloaded file {}'.format(os.path.basename(url)))
+        if not quiet:
+            print('Bypassing download of already-downloaded file {}'.format(os.path.basename(url)))
         return destination_filename
     print('Downloading file {} to {}'.format(os.path.basename(url),destination_filename),end='')
     urllib.request.urlretrieve(url, destination_filename, progress_updater)  
@@ -172,3 +188,101 @@ def get_coordinates_from_address(address):
     location = geolocator.geocode(address)
     print('Retrieving location for address:\n{}'.format(location.address))
     return location.latitude, location.longitude
+
+def lat_lon_to_nasadem_tile(lat,lon):
+    """
+    Get the NASADEM file name for a specified latitude and longitude
+    """
+
+    # A tile name looks like:
+    #
+    # NASADEM_NUMNC_n00e016.nc
+    #
+    # The translation from lat/lon to that string is represented nicely at:
+    #
+    # https://dwtkns.com/srtm30m/
+
+    # Force download of the file list
+    get_nasadem_file_list()
+
+    ns_token = 'n' if lat >=0 else 's'
+    ew_token = 'e' if lon >=0 else 'w'
+
+    lat_index = abs(math.floor(lat))
+    lon_index = abs(math.floor(lon))
+
+    lat_string = ns_token + '{:02d}'.format(lat_index)
+    lon_string = ew_token + '{:03d}'.format(lon_index)
+
+    filename =  nasadem_file_prefix + lat_string + lon_string + \
+        nasadem_content_extension
+
+    if filename not in nasadem_file_list:
+        print('Lat/lon {},{} not available'.format(lat,lon))
+        filename = None
+
+    return filename
+
+
+def get_nasadem_file_list():
+    """
+    Retrieve the full list of NASADEM tiles
+    """
+
+    global nasadem_file_list
+    if nasadem_file_list is None:
+        nasadem_file = download_url(nasadem_file_index_url)
+        with open(nasadem_file) as f:
+            nasadem_file_list = f.readlines()
+            nasadem_file_list = [f.strip() for f in nasadem_file_list]
+            nasadem_file_list = [f for f in nasadem_file_list if \
+                                     f.endswith(nasadem_content_extension)]
+    return nasadem_file_list
+
+def lat_lon_to_nasadem_tile(lat,lon,current_dem_list=None):
+    """
+    Get the NASADEM file name for a specified latitude and longitude
+    """
+
+    # A tile name looks like:
+    #
+    # NASADEM_NUMNC_n00e016.nc
+    #
+    # The translation from lat/lon to that string is represented nicely at:
+    #
+    # https://dwtkns.com/srtm30m/
+
+    # Force download of the file list
+    nasadem_file_list = get_nasadem_file_list(current_dem_list)
+
+    ns_token = 'n' if lat >=0 else 's'
+    ew_token = 'e' if lon >=0 else 'w'
+
+    lat_index = abs(math.floor(lat))
+    lon_index = abs(math.floor(lon))
+
+    lat_string = ns_token + '{:02d}'.format(lat_index)
+    lon_string = ew_token + '{:03d}'.format(lon_index)
+
+    filename =  nasadem_file_prefix + lat_string + lon_string + \
+        nasadem_content_extension
+
+    if filename not in nasadem_file_list:
+        print('Lat/lon {},{} not available'.format(lat,lon))
+        filename = None
+
+    return filename
+
+def get_nasadem_file_list(current_dem_list):
+    """
+    Retrieve the full list of NASADEM tiles
+    """
+    if current_dem_list is None:
+        nasadem_file = download_url(nasadem_file_index_url)
+        with open(nasadem_file) as f:
+            nasadem_file_list = f.readlines()
+            nasadem_file_list = [f.strip() for f in nasadem_file_list]
+            nasadem_file_list = [f for f in nasadem_file_list if \
+                f.endswith(nasadem_content_extension)]
+    return nasadem_file_list
+
