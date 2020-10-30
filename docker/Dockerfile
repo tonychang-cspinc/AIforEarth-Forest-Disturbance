@@ -24,7 +24,6 @@ RUN apt-get update && \
     libspatialindex-dev \
     fonts-dejavu \
     gfortran \
-    r-base \
     wget && \
     rm -rf /var/lib/apt/lists/*
 
@@ -65,22 +64,6 @@ RUN mkdir -p $(jupyter --data-dir)/nbextensions &&\
      cd $(jupyter --data-dir)/nbextensions &&\
      git clone https://github.com/lambdalisue/jupyter-vim-binding vim_binding &&\
      jupyter nbextension enable vim_binding/vim_binding
-
-#add R dependencies 
-
-#RUN add-apt-repository 'deb http://ppa.launchpad.net/ubuntugis/ubuntugis-unstable/ubuntu bionic main ' && \
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 089EBE08314DF160 && \
-apt update && \
-apt install -y libgdal-dev libproj-dev libgeos-dev libudunits2-dev libv8-dev libcairo2-dev libnetcdf-dev
-
-RUN Rscript -e "install.packages(c('devtools', 'geojsonio', 'testthat', 'roxygen2','IRkernel','rFIA'),\
-             repos = c('http://irkernel.github.io/', 'http://cran.rstudio.com'))"
-
-RUN Rscript -e "library('devtools')" \
-            -e "install_github('IRkernel/repr')"\
-            -e "install_github('IRkernel/IRdisplay')"
-
-RUN Rscript -e "IRkernel::installspec(user = FALSE)"
 
 #add blobfuse dependencies
 RUN wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb
