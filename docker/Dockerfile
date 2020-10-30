@@ -29,6 +29,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install \
+    azure-cli==2.14.0 \
+    azure-storage-blob==12.5.0 \
     numpy==1.19.1 \
     pandas==1.1.0 \
     geopandas==0.8.1 \
