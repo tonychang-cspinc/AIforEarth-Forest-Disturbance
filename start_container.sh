@@ -1,8 +1,9 @@
 #!/bin/bash
+USER=tony
 IMAGENAME=cspinc/fia:sample-building
-DATADRIVE=/home/cspadmin/datablob
-SECRETS=/home/cspadmin/azure_secrets.env
-PORT=8765
+DATADRIVE=/home/$USER/datablob
+SECRETS=/home/$USER/azure_secrets.env
+PORT=8080
 #-v $DATADRIVE:/datadrive \
 docker run -it --rm --privileged \
     -p $PORT:$PORT \

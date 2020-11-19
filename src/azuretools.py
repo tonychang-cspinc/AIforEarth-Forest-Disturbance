@@ -3,6 +3,8 @@ import warnings
 import urllib
 import shutil
 import os
+import io
+import requests
 
 # Workaround for a problem in older rasterio versions
 os.environ["CURL_CA_BUNDLE"] = "/etc/ssl/certs/ca-certificates.crt" 
@@ -10,6 +12,9 @@ os.environ["CURL_CA_BUNDLE"] = "/etc/ssl/certs/ca-certificates.crt"
 # Less standard, but still pip- or conda-installable
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import gdal
+import osr
 import rasterio
 import rtree
 import shapely
@@ -22,6 +27,7 @@ import progressbar
 from geopy.geocoders import Nominatim
 from rasterio.windows import Window 
 from tqdm import tqdm
+from azure.storage.blob import ContainerClient
 
 crs = "EPSG:4326"
 
@@ -46,6 +52,40 @@ nasadem_file_prefix = 'NASADEM_NC_'
 temp_dir = os.path.join(tempfile.gettempdir(),'naip')
 os.makedirs(temp_dir,exist_ok=True)
 
+# Storage locations are documented at http://aka.ms/ai4edata-hls
+hls_container_name = 'hls'
+hls_account_name = 'hlssa'
+hls_account_url = 'https://' + hls_account_name + '.blob.core.windows.net/'
+hls_blob_root = hls_account_url + hls_container_name
+
+# This file is provided by NASA; it indicates the lat/lon extents of each
+# hls tile.
+#
+# The file originally comes from:
+#
+# https://hls.gsfc.nasa.gov/wp-content/uploads/2016/10/S2_TilingSystem2-1.txt
+#
+# ...but as of 8/2019, there is a bug with the column names in the original file, so we
+# access a copy with corrected column names.
+
+hls_tile_extents_url = 'https://ai4edatasetspublicassets.blob.core.windows.net/assets/S2_TilingSystem2-1.txt?st=2019-08-23T03%3A25%3A57Z&se=2028-08-24T03%3A25%3A00Z&sp=rl&sv=2018-03-28&sr=b&sig=KHNZHIJuVG2KqwpnlsJ8truIT5saih8KrVj3f45ABKY%3D'
+
+# Load this file into a table, where each row is:
+#
+# Tile ID, Xstart, Ystart, UZ, EPSG, MinLon, MaxLon, MinLon, MaxLon
+#print('Reading tile extents...')
+s = requests.get(hls_tile_extents_url).content
+hls_tile_extents = pd.read_csv(io.StringIO(s.decode('utf-8')),delimiter=r'\s+')
+#print('Read tile extents for {} tiles'.format(len(hls_tile_extents)))
+
+# Read-only shared access signature (SAS) URL for the hls container
+hls_sas_token = 'st=2019-08-07T14%3A54%3A43Z&se=2050-08-08T14%3A54%3A00Z&sp=rl&sv=2018-03-28&sr=c&sig=EYNJCexDl5yxb1TxNH%2FzILznc3TiAnJq%2FPvCumkuV5U%3D'
+
+hls_container_client = ContainerClient(account_url=hls_account_url, 
+container_name=hls_container_name,
+credential=None)
+
+
 class DownloadProgressBar():
     """
     https://stackoverflow.com/questions/37748105/how-to-use-progressbar-module-with-urlretrieve
@@ -66,6 +106,9 @@ class DownloadProgressBar():
         else:
             self.pbar.finish()
             
+##########################        
+#####NAIP tools###########        
+##########################        
 
 class NAIPTileIndex:
     """
@@ -189,6 +232,11 @@ def get_coordinates_from_address(address):
     print('Retrieving location for address:\n{}'.format(location.address))
     return location.latitude, location.longitude
 
+##############################        
+######NASADEM tools###########        
+##############################        
+
+
 def lat_lon_to_nasadem_tile(lat,lon):
     """
     Get the NASADEM file name for a specified latitude and longitude
@@ -285,4 +333,61 @@ def get_nasadem_file_list(current_dem_list):
             nasadem_file_list = [f for f in nasadem_file_list if \
                 f.endswith(nasadem_content_extension)]
     return nasadem_file_list
+
+##############################        
+##########HLS tools###########        
+##############################        
+
+def get_hls_tile(blob_url):
+    """
+    Given a URL pointing to an HLS image in blob storage, load that image via GDAL
+    and return both data and metadata.
+    """    
+
+    formatted_gdal_bloburl='/{}/{}'.format('vsicurl',blob_url)
+
+    tile_open = gdal.Open(formatted_gdal_bloburl)
+    data = tile_open.GetRasterBand(1)
+    ndv,xsize,ysize = data.GetNoDataValue(),tile_open.RasterXSize,tile_open.RasterYSize
+
+    projection = osr.SpatialReference()
+    projection.ImportFromWkt(tile_open.GetProjectionRef())
+
+    datatype = data.DataType
+    datatype = gdal.GetDataTypeName(datatype)  
+    data_array = data.ReadAsArray()
+
+    return ndv,xsize,ysize,projection,data_array
+
+
+def list_available_tiles(prefix):
+    """
+    List all blobs in an Azure blob container matching a prefix.  
+
+    We'll use this to query tiles by location and year.
+    """
+
+    files = []
+    generator = hls_container_client.list_blobs(name_starts_with=prefix)
+    for blob in generator:
+        files.append(blob.name)
+    return files
+
+
+def lat_lon_to_hls_tile_id(lat,lon):
+    """
+    Get the hls tile ID for a given lat/lon coordinate pair
+    """  
+    found_matching_tile = False
+
+    for i_row,row in hls_tile_extents.iterrows():
+        found_matching_tile = lat >= row.MinLat and lat <= row.MaxLat \
+                and lon >= row.MinLon and lon <= row.MaxLon
+        if found_matching_tile:
+            break
+
+    if not found_matching_tile:
+        return None
+    else:
+        return row.TilID
 
