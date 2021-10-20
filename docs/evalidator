@@ -1,0 +1,32 @@
+# Evalidator validation methods
+
+https://apps.fs.usda.gov/Evalidator/evalidator.jsp
+
+Here we describe the methods for performing validation in the same manner as the USFS for their modeling efforts. Some things to consider include
+
+1. Retrieval Type
+	* State or Circle retrieval
+		* Here we might try both methods, but defaulting to Circle
+		* Circle method requires the parameters
+			- Latitude in decimal degrees
+			- Longitude in decimal degrees
+			- Radius in miles (here we are unsure of this radius, do research)
+2. Land Basis
+<embed src="https://www.fia.fs.fed.us/tools-data/maps/2007/national-100/ytim_land_national_rpa_2007_100.pdf" type="application/pdf">
+
+	* All land, Forest Land, Timberland
+		- All land is both forest land and timberland
+		- Forest land is defined as land that is 10 percent forested by trees of any size
+		- Timberland is forest land that is available to harvest and capable of productivity (this implies some minimum basal area and average DBH; can produce 20 cubic feet of wood per acre per year)
+
+3. Numerator and/or Denomitor Estimate Group
+	* Selection of the various forest structure metrics we might be trying to compare, specifically:
+		- Tree carbon
+		- Tree basal area
+
+# Using the FIADB_API
+
+For reference see [here](https://apps.fs.usda.gov/fia/datamart/images/FIADB_API.pdf)
+
+Example GET link
+https://apps.fs.usda.gov/Evalidator/rest/Evalidator/fullreport?reptype=Circle&lat=45&lon=-93&radius=50&snum=Area of timberland, in acres&sdenom=No denominator-just produce estimates&wc=272015,552015&pselected=None&rselected=Stand-sizeclass&cselected=Ownership group-Major&ptime=Current&rtime=Current&ctime=Current&wf=&wnum=&wnumdenom=&FIAorRPA=FIADEF&outputFormat=HTML&estOnly=N&schemaName=FS_FIADB
