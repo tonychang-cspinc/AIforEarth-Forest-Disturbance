@@ -57,6 +57,7 @@ RUN pip3 install \
     google-auth-oauthlib==0.4.1 \
     netCDF4==1.5.4 \
     utm==0.6.0 \
+    beautifulsoup4==4.10.0 \
     wget==3.2
 
 #add vim bindings
